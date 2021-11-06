@@ -1,0 +1,9 @@
+automatic-ecg-diagnosis-master
+data
+logs
+zips
+ignore
+
+backup_model_best.hdf5
+backup_model_last.hdf5
+training.log
