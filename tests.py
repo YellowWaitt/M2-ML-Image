@@ -1,37 +1,16 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import pandas as pd
 import h5py
 
-from sklearn.decomposition import PCA
+from chrono import start, stop
+from path import ecg_dir, ptb_dir
 
-import time
+from load_ptbxl import DISEASES
 
-
-# %% Chrono decorator
-
-def chrono(fun):
-    def wrapper(*args, **kwargs):
-        start = time.time()
-        res = fun(*args, **kwargs)
-        end = time.time()
-        print("%s done in %f seconds" % (fun.__name__, end - start))
-        return res
-
-    return wrapper
-
-
-# %% Some constants
-
-LEADS = ["DI", "DII", "DIII", "AVL", "AVF", "AVR",
-         "V1", "V2", "V3", "V4", "V5", "V6"]
 
 ABNORMALITIES = ["1dAVb", "RBBB", "LBBB", "SB", "AF", "ST"]
 
 
-# %% Loading functions
-
-@chrono
 def load_datas(f_name):
     with h5py.File(f_name, "r") as f:
         datas = np.array(f['tracings'])
@@ -48,96 +27,38 @@ def load_annotations(f_name):
     return annot
 
 
-def load_prediction(f_name):
+def load_prediction(f_name, diseases):
     raw = np.load(f_name)
     pred = np.round(raw).astype(np.int8)
-    pred = pd.DataFrame(pred, columns=ABNORMALITIES)
+    pred = pd.DataFrame(pred, columns=diseases)
     add_abnormalities(pred)
     return raw, pred
 
 
-# %% Plot functions
+def remove_abnormalities(columns):
+    return list(filter(lambda col: col != "Nb Abnormalities", columns))
 
-def subplot_leads(plot_fun, datas, *,
-                  title=None,
-                  n_row=4, n_col=3,
-                  width=4, height=4):
-    fig, axs = plt.subplots(n_row, n_col,
-                            figsize=(n_col * width, n_row * height))
-
-    for i in range(n_row):
-        for j in range(n_col):
-            k = i * n_col + j
-            ax = axs[i, j]
-            plot_fun(datas, k, ax)
-            ax.set_title(LEADS[k], size=30)
-
-    if title is not None:
-        fig.suptitle(title, size=40, y=1)
-
-    fig.tight_layout()
-    plt.show()
-
-
-def plot_ECG(ecgs, **kwargs):
-    def plot(ecgs, k, ax):
-        for ecg in ecgs:
-            ax.plot(ecg[:, k])
-
-    if isinstance(ecgs, np.ndarray):
-        if len(ecgs.shape) == 2:
-            ecgs = [ecgs]
-
-    subplot_leads(plot, ecgs, width=8, **kwargs)
-
-
-def plot_ECG_no(datas, n):
-    plot_ECG(datas[n], title=n)
-
-
-def plot_pca(datas, labels, ax=None):
-    COLORS = ["b", "g", "r", "c", "m", "y"]
-
-    if ax is None:
-        _, ax = plt.subplots()
-
-    index = labels[labels["Nb Abnormalities"] == 0].index
-    to_plot = datas[index]
-    ax.scatter(to_plot[:, 0], to_plot[:, 1], c="k", alpha=0.5)
-
-    for c, abn in zip(COLORS, ABNORMALITIES):
-        index = labels[labels[abn] == 1].index
-        to_plot = datas[index]
-        ax.scatter(to_plot[:, 0], to_plot[:, 1], c=c, alpha=0.7)
-
-    return ax
-
-
-@chrono
-def plot_pcas(datas, labels, **kwargs):
-    def plot(datas, k, ax):
-        plot_pca(datas[k], labels, ax)
-
-    subplot_leads(plot, datas, **kwargs)
-
-
-# %% Data manipulations
 
 def cross_tables(truth, pred):
+    def error_percentage(table):
+        return (table.loc[0, 1] + table.loc[1, 0]) / table.values.sum()
+
     tables = dict()
-    total = pd.DataFrame(np.zeros((2, 2), dtype=np.int32))
-    for abn in ABNORMALITIES:
+    total = pd.DataFrame(np.zeros((2, 2), dtype=np.int16))
+    col = remove_abnormalities(pred.columns)
+    for abn in col:
         table = pd.crosstab(truth[abn], pred[abn])
         total += table
-        tables[abn] = table
-    tables["total"] = total
+        tables[abn] = {"errors": table, "percentage": error_percentage(table)}
+    tables["total"] = {"errors": total, "percentage": error_percentage(total)}
     return tables
 
 
-def make_mmm(datas, preds):
+def make_mmm(datas, pred):
     infos = pd.DataFrame()
-    for abn in ABNORMALITIES:
-        index = preds[preds[abn] == 1].index
+    col = remove_abnormalities(pred.columns)
+    for abn in col:
+        index = pred[pred[abn] == 1].index
         infos[abn] = pd.Series({
             "min": np.min(datas[index], axis=0),
             "mean": np.mean(datas[index], axis=0),
@@ -151,49 +72,24 @@ def make_mmm(datas, preds):
     return infos
 
 
-@chrono
-def make_PCA(datas):
-    def ind90(ratio):
-        """
-        Cherche le nombre de composante qui explique 90% de variance
-        """
-        cum = 0.0
-        for i, r in enumerate(ratio):
-            cum += r
-            if cum >= 0.9:
-                return i + 1
+# %%
 
-    def pca90(datas):
-        """
-        Détermine un "bon" nombre de composante et réeffectue une PCA pour
-        utiliser les transform et inverse_transform déjà implémentés
-        """
-        pca = PCA().fit(datas)
-        return PCA(ind90(pca.explained_variance_ratio_)).fit(datas)
+if __name__ == "__main__":
+    start("tests.py main")
 
-    pcas = [pca90(datas[:, :, i]) for i in range(datas.shape[2])]
+    # X = load_datas(ecg_dir + "ecg_tracings.hdf5")
+    # A = pd.read_csv(ecg_dir + "attributes.csv")
 
-    projs = [pca.transform(datas[:, :, i]) for i, pca in enumerate(pcas)]
-    stacked = np.hstack(projs)
-    pca_stacked = pca90(stacked)
+    _, pred = load_prediction("ribeiro_output.npy", ABNORMALITIES)
+    _, pred_train = load_prediction("ptbxl_train_output.npy", DISEASES)
+    _, pred_test = load_prediction("ptbxl_test_output.npy", DISEASES)
 
-    flatted = datas.reshape((datas.shape[0], -1))
-    pca_flat = pca90(flatted)
+    Y = load_annotations(ecg_dir + "annotations/gold_standard.csv")
+    Y_train = load_annotations(ptb_dir + "annot_train.csv")
+    Y_test = load_annotations(ptb_dir + "annot_test.csv")
 
-    return pcas, pca_stacked, pca_flat, projs, stacked, flatted
+    ribeiro_err = cross_tables(Y, pred)
+    train_err = cross_tables(Y_train, pred_train)
+    test_err = cross_tables(Y_test, pred_test)
 
-
-# %% Classifications tests
-
-
-# %% Main
-
-if __name__ == '__main__':
-    X = load_datas("data/ecg_tracings.hdf5")
-    Y = load_annotations("data/annotations/gold_standard.csv")
-    A = pd.read_csv("data/attributes.csv")
-
-    _, pred = load_prediction("dnn_output.npy")
-    ct = cross_tables(Y, pred)
-
-    pcas, pca_stacked, pca_flat, projs, stacked, X_flat = make_PCA(X)
+    stop()
