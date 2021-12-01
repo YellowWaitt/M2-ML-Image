@@ -1,9 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-
-LEADS = ["DI", "DII", "DIII", "AVL", "AVF", "AVR",
-         "V1", "V2", "V3", "V4", "V5", "V6"]
+from constants import LEADS
 
 
 def subplot_leads(plot_fun, datas, *,

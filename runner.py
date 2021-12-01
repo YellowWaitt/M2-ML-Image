@@ -3,7 +3,7 @@ import sys
 import subprocess
 
 from chrono import chrono
-from path import scripts_dir, ecg_dir, ptb_dir
+from constants import SCRIPTS_DIR, ECG_DIR, PTB_DIR
 
 
 def rename(src, dst):
@@ -30,7 +30,7 @@ def call(cmd, name):
 @chrono
 def train(ecg_hdf5, annot_csv, model_name):
     cmd = "python {0}train.py {1} {2}".format(
-        scripts_dir, ecg_hdf5, annot_csv)
+        SCRIPTS_DIR, ecg_hdf5, annot_csv)
     call(cmd, "train.py")
 
     rename("backup_model_best.hdf5", "backup_" + model_name + "_best.hdf5")
@@ -46,7 +46,7 @@ def predict(ecg_hdf5, model_name, pred_name=None):
         model_hdf5 = model_name + "_model.hdf5"
 
     cmd = "python {0}predict.py {1} {2}".format(
-        scripts_dir, ecg_hdf5, model_hdf5)
+        SCRIPTS_DIR, ecg_hdf5, model_hdf5)
     call(cmd, "predict.py")
 
     pred_name = "" if pred_name is None else "_" + pred_name
@@ -56,22 +56,22 @@ def predict(ecg_hdf5, model_name, pred_name=None):
 # %%
 
 def train_ribeiro():
-    train(ecg_dir + "ecg_tracings.hdf5",
-          ecg_dir + "annotations/gold_standard.csv",
+    train(ECG_DIR + "ecg_tracings.hdf5",
+          ECG_DIR + "annotations/gold_standard.csv",
           "ribeiro")
 
 
 def predict_ribeiro():
-    predict(ecg_dir + "ecg_tracings.hdf5", "ribeiro")
+    predict(ECG_DIR + "ecg_tracings.hdf5", "ribeiro")
 
 
 # %%
 
 def train_ptbxl():
-    train(ptb_dir + "ecgs_train.hdf5",
-          ptb_dir + "annot_train.csv",
+    train(PTB_DIR + "ecgs_train.hdf5",
+          PTB_DIR + "annot_train.csv",
           "ptbxl")
 
 
 def predict_ptbxl(name):
-    predict(ptb_dir + "ecgs_%s.hdf5" % name, "ptbxl", name)
+    predict(PTB_DIR + "ecgs_%s.hdf5" % name, "ptbxl", name)

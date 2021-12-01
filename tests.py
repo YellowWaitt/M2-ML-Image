@@ -3,12 +3,7 @@ import pandas as pd
 import h5py
 
 from chrono import start, stop
-from path import ecg_dir, ptb_dir
-
-from load_ptbxl import DISEASES
-
-
-ABNORMALITIES = ["1dAVb", "RBBB", "LBBB", "SB", "AF", "ST"]
+from constants import ABNORMALITIES, DISEASES, ECG_DIR, PTB_DIR
 
 
 def load_datas(f_name):
@@ -84,9 +79,9 @@ if __name__ == "__main__":
     _, pred_train = load_prediction("ptbxl_train_output.npy", DISEASES)
     _, pred_test = load_prediction("ptbxl_test_output.npy", DISEASES)
 
-    Y = load_annotations(ecg_dir + "annotations/gold_standard.csv")
-    Y_train = load_annotations(ptb_dir + "annot_train.csv")
-    Y_test = load_annotations(ptb_dir + "annot_test.csv")
+    Y = load_annotations(ECG_DIR + "annotations/gold_standard.csv")
+    Y_train = load_annotations(PTB_DIR + "annot_train.csv")
+    Y_test = load_annotations(PTB_DIR + "annot_test.csv")
 
     ribeiro_err = cross_tables(Y, pred)
     train_err = cross_tables(Y_train, pred_train)

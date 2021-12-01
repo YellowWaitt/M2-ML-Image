@@ -39,7 +39,7 @@ def chrono(fun):
 
 def start(chunck_name=None):
     if chunck_name is not None:
-        print("Starting", chunck_name)
+        print("Start of", chunck_name)
     _global_times.append([chunck_name, time.time()])
 
 

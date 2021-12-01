@@ -1,18 +1,15 @@
-import pandas as pd
 import numpy as np
-import h5py
+import pandas as pd
 
 import ast
 import cv2
+import h5py
 from tqdm import tqdm
 import wfdb
 
 from chrono import chrono
-from path import ptb_dir
+from constants import DISEASES, PTB_DIR
 from tests import add_abnormalities
-
-
-DISEASES = ["MI", "HYP", "CD", "STTC"]
 
 
 @chrono
@@ -50,7 +47,7 @@ def load_ptbxl(*, size=32):
         X = resize(X, 4096)
         return X, Y
 
-    X_train, Y_train, X_test, Y_test = load_raw(ptb_dir, size=size)
+    X_train, Y_train, X_test, Y_test = load_raw(PTB_DIR, size=size)
     X_train, Y_train = process(X_train, Y_train)
     X_test, Y_test = process(X_test, Y_test)
     return X_train, Y_train, X_test, Y_test
@@ -78,7 +75,7 @@ def load_raw(path, *, size=32, sampling_rate=500, test_fold=10):
 
     # load and convert annotation data
     Y = pd.read_csv(path + "ptbxl_database.csv", index_col="ecg_id")
-    Y.scp_codes = Y["scp_codes"].apply(lambda x: ast.literal_eval(x))
+    Y.scp_codes = Y["scp_codes"].apply(ast.literal_eval)
     # Load raw signal data
     X = load_raw_data(Y, sampling_rate, path)
     # Load scp_statements.csv for diagnostic aggregation
@@ -109,8 +106,8 @@ def convert_for_model(*args):
         Y.to_csv(name, index=False)
 
     def save(X, Y, name):
-        save_hdf5(X, ptb_dir + "ecgs_%s.hdf5" % name)
-        save_csv(Y, ptb_dir + "annot_%s.csv" % name)
+        save_hdf5(X, PTB_DIR + "ecgs_%s.hdf5" % name)
+        save_csv(Y, PTB_DIR + "annot_%s.csv" % name)
 
     if len(args) == 0:
         X_train, Y_train, X_test, Y_test = load_ptbxl()
@@ -134,8 +131,8 @@ def load_ptbxl2():
         return Y
 
     def load(name):
-        X = load_hdf5(ptb_dir + "ecgs_%s.hdf5" % name)
-        Y = load_csv(ptb_dir + "annot_%s.csv" % name)
+        X = load_hdf5(PTB_DIR + "ecgs_%s.hdf5" % name)
+        Y = load_csv(PTB_DIR + "annot_%s.csv" % name)
         return X, Y
 
     X_train, Y_train = load("train")
