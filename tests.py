@@ -72,8 +72,8 @@ def make_mmm(datas, pred):
 if __name__ == "__main__":
     start("tests.py main")
 
-    # X = load_datas(ecg_dir + "ecg_tracings.hdf5")
-    # A = pd.read_csv(ecg_dir + "attributes.csv")
+    # X = load_datas(ECG_DIR + "ecg_tracings.hdf5")
+    # A = pd.read_csv(ECG_DIR + "attributes.csv")
 
     _, pred = load_prediction("ribeiro_output.npy", ABNORMALITIES)
     _, pred_train = load_prediction("ptbxl_train_output.npy", DISEASES)

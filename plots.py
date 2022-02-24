@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+from sklearn.metrics import ConfusionMatrixDisplay
+
 from constants import LEADS
 
 
@@ -39,3 +41,17 @@ def plot_ECG(ecgs, **kwargs):
 
 def plot_ECG_no(datas, n):
     plot_ECG(datas[n], title=n)
+
+
+def confusion_matrix(cm, acc, title=None):
+    acc = "Accuracy: %f" % acc
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm).plot()
+    title = acc if title is None else title + "\n" + acc
+    disp.figure_.suptitle(title)
+    plt.show()
+
+
+def plot_cross_table(dic, abn):
+    confusion_matrix(dic[abn]["errors"].to_numpy(),
+                     1 - dic[abn]["percentage"],
+                     abn)
